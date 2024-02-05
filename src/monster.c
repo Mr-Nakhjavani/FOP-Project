@@ -43,15 +43,16 @@ void show_some_log(int counter, char *argv[]);
 void show_some_log_plus(int counter, char *word);
 int branch(int argc, char *argv[]);
 bool HEAD_flag();
+int checkout(int argc, char *argv[]);
 
 bool HEAD_flag()
-{ 
+{
     FILE *myid = fopen(".monster/myid", "r");
     char myidd[100];
     nuller(myidd);
     fgets(myidd, sizeof(myidd), myid);
     myidd[strlen(myidd)] = '\0';
-    if (atoi(myidd) == commitcounter()-1)
+    if (atoi(myidd) == commitcounter() - 1)
         return true;
     return false;
 }
@@ -488,45 +489,18 @@ int add(int argc, char *argv[])
     else if (strcmp(argv[2], "-n") == 0)
     {
         int flag = 1;
-        FILE *file = fopen(".monster/staged", "r");
-        char address[MAX_FILENAME_LENGTH];
         DIR *dir = opendir(".");
         struct dirent *entry;
-        address[strlen(address) - 1] = '\0';
         while ((entry = readdir(dir)) != NULL)
         {
             if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".monster") != 0 && isDirectory(entry->d_name) == 0)
             {
                 printf("%s: ", entry->d_name);
                 flag = 0;
-                while (fgets(address, sizeof(address), file) != NULL)
-                {
-                    address[strlen(address) - 1] = '\0';
-                    char filename[MAX_FILENAME_LENGTH];
-                    nuller(filename);
-                    int start = 0;
-                    for (int i = strlen(address) - 1; i >= 0; i--)
-                    {
-                        if (address[i] == '/')
-                        {
-                            start = i + 1;
-                            break;
-                        }
-                    }
-                    for (int i = start; i < strlen(address); i++)
-                    {
-                        filename[i - start] = address[i];
-                    }
-                    filename[strlen(address) - start] = '\0';
-                    if (strcmp(filename, entry->d_name) == 0)
-                    {
-                        if (check_if_file_is_unstaged(address) == 'S')
-                            printf("STAGED\n");
-                        else
-                            printf("NOT STAGED\n");
-                    }
-                }
-                rewind(file);
+                if (check_if_file_is_unstaged(entry->d_name) == 'S')
+                    printf("STAGED\n");
+                else
+                    printf("NOT STAGED\n");
             }
             if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0 && strcmp(entry->d_name, ".monster") != 0 && isDirectory(entry->d_name) == 1)
                 printf("%s: IS A DIRECTORY!\n", entry->d_name);
@@ -853,18 +827,21 @@ int commit(int argc, char *argv[])
             char file_name_dest_2[MAX_FILENAME_LENGTH];
             int flag = 0;
             int counter_commited_files = 0;
-            DIR* dwadaw=opendir(".monster/added/");
-            struct dirent* kiir;
-            if((kiir=readdir(dwadaw))==NULL){
+            DIR *dwadaw = opendir(".monster/added/");
+            struct dirent *kiir;
+            if ((kiir = readdir(dwadaw)) == NULL)
+            {
                 printf("There is no file in staging area!\n");
                 return 1;
             }
-            DIR* mamad=opendir(".monster/commits/");
-            struct dirent* memed;
-            while((memed=readdir(mamad))!=NULL){
-                if(strcmp(memed->d_name, ".") != 0 && strcmp(memed->d_name, "..") != 0){
+            DIR *mamad = opendir(".monster/commits/");
+            struct dirent *memed;
+            while ((memed = readdir(mamad)) != NULL)
+            {
+                if (strcmp(memed->d_name, ".") != 0 && strcmp(memed->d_name, "..") != 0)
+                {
                     char tetete[1000];
-                    sprintf(tetete,".monster/commits/%s",memed->d_name);
+                    sprintf(tetete, ".monster/commits/%s", memed->d_name);
                     remove(tetete);
                 }
             }
@@ -979,7 +956,7 @@ int commit(int argc, char *argv[])
         else
         {
             printf("You can't commit anything now(try runnig monster checkout HEAD)\n");
-            return 1; 
+            return 1;
         }
     }
 }
@@ -1062,7 +1039,7 @@ int log_git(int argc, char *argv[])
     }
     FILE *file = fopen(".monster/commitsinformation", "r");
     char line[MAX_LINE_LENGTH];
-    if (fgets(line, sizeof(line), file)== NULL)
+    if (fgets(line, sizeof(line), file) == NULL)
     {
         printf("No commit to show!\n");
         return 1;
@@ -1070,7 +1047,7 @@ int log_git(int argc, char *argv[])
     fclose(file);
     if (argc == 2)
     {
-        show_log(999,0);
+        show_log(999, 0);
         return 0;
     }
     else if (strcmp(argv[2], "-n") == 0 && argc == 4)
@@ -1134,7 +1111,7 @@ void show_log(int counter, int number)
     for (int i = 0; i < 8; i++)
     {
         fgets(line, sizeof(line), file);
-        line[strlen(line)-1] = '\0';
+        line[strlen(line) - 1] = '\0';
         if (line[0] != '\0')
             puts(line);
     }
@@ -1449,8 +1426,12 @@ int checkout(int argc, char *argv[])
     }
     if (argv[2][0] < '0' || argv[2][0] > '9')
     {
-        DIR *dir0 = opendir(".monster/staged/");
-        if (dir0 != NULL)
+        DIR *dir0 = opendir(".monster/added/");
+        struct dirent* entryy;
+        for(int i=0;i<2;i++){
+            readdir(dir0);
+        }
+        if (((entryy = readdir(dir0)) != NULL))
         {
             printf("There are uncommited changes!\n");
             return 1;
@@ -1464,11 +1445,12 @@ int checkout(int argc, char *argv[])
             if (strcmp(entry->d_name, argv[2]) == 0)
             {
                 flag = 0;
-                FILE *file=fopen(".monster/mybranch", "r");
+                FILE *file = fopen(".monster/mybranch", "r");
                 char temp[MAX_LINE_LENGTH];
-                fgets(temp,sizeof(temp),file);
-                if(strcmp(argv[2],temp)==0){
-                    printf("You already are in branch %s\n",temp);
+                fgets(temp, sizeof(temp), file);
+                if (strcmp(argv[2], temp) == 0)
+                {
+                    printf("You already are in branch %s\n", temp);
                     return 1;
                 }
                 fclose(file);
@@ -1477,7 +1459,8 @@ int checkout(int argc, char *argv[])
                 fclose(file);
             }
         }
-        printf("Switched to branch %s", argv[2]);
+        if(flag==0)
+            printf("Switched to branch %s", argv[2]);
         if (flag)
         {
             printf("Wrong branch name!\n");
@@ -1487,8 +1470,12 @@ int checkout(int argc, char *argv[])
     }
     if (argv[2][0] >= '0' && argv[2][0] <= '9')
     {
-        DIR *dir0 = opendir(".monster/staged/");
-        if (dir0 != NULL)
+        DIR *dir0 = opendir(".monster/added/");
+        struct dirent* entryy;
+        for(int i=0;i<2;i++){
+            readdir(dir0);
+        }
+        if (((entryy = readdir(dir0)) != NULL))
         {
             printf("There are uncommited changes!\n");
             return 1;
@@ -1506,12 +1493,14 @@ int checkout(int argc, char *argv[])
                 sscanf(entry->d_name, "commits%d", &id_to_find);
                 if (id == id_to_find)
                 {
-                    DIR* mamad=opendir(".monster/commits/");
-                    struct dirent* memed;
-                    while((memed=readdir(mamad))!=NULL){
-                        if(strcmp(memed->d_name, ".") != 0 && strcmp(memed->d_name, "..") != 0){
+                    DIR *mamad = opendir(".monster/commits/");
+                    struct dirent *memed;
+                    while ((memed = readdir(mamad)) != NULL)
+                    {
+                        if (strcmp(memed->d_name, ".") != 0 && strcmp(memed->d_name, "..") != 0)
+                        {
                             char tetete[1000];
-                            sprintf(tetete,".monster/commits/%s",memed->d_name);
+                            sprintf(tetete, ".monster/commits/%s", memed->d_name);
                             remove(tetete);
                         }
                     }
@@ -1536,15 +1525,14 @@ int checkout(int argc, char *argv[])
                         {
                             fputs(line, file_dest);
                         }
-                        
                     }
                     closedir(dir2);
                 }
             }
         }
-        FILE* filedwadwa=fopen(".monster/myid","w");
-        fprintf(filedwadwa,"%d",id);
-        printf("Switched to commit %d",id);
+        FILE *filedwadwa = fopen(".monster/myid", "w");
+        fprintf(filedwadwa, "%d", id);
+        printf("Switched to commit %d", id);
         closedir(dir);
         return 0;
         if (flag)
