@@ -44,16 +44,77 @@ void show_some_log_plus(int counter, char *word);
 int branch(int argc, char *argv[]);
 bool HEAD_flag();
 int checkout(int argc, char *argv[]);
+int revert(int argc, char *argv[]);
+bool uncommited_change();
+
+bool uncommited_change()
+{
+    DIR* dir=opendir(".monster/commits");
+    struct dirent* entry;
+    FILE* file=fopen(".monster/staged","r");
+    while((entry=readdir(dir))!=NULL){
+        if(strcmp(entry->d_name,".")!=0 && strcmp(entry->d_name,".")!=0){
+            char line[MAX_LINE_LENGTH];
+            while(fgets(line,sizeof(line),file)!=NULL){
+                line[strlen(line)-1]='\0';
+                char name[MAX_FILENAME_LENGTH];
+                int start=0;
+                for(int i=strlen(line)-1;i>=0;i--){
+                    if(line[i]=='/'){
+                        start=i+1;
+                        break;
+                    }
+                }
+                for(int i=start;i<strlen(line);i++){
+                    name[i-start]=line[i];
+                }
+                name[strlen(line)-start]='\0';
+                if(strcmp(name,entry->d_name)==0){
+                    char filename1[MAX_FILENAME_LENGTH];
+                    sprintf(filename1,".monster/commits/%s",entry->d_name);
+                    FILE* file1=fopen(filename1,"r");
+                    FILE* file2=fopen(line,"r");
+                    char line1[MAX_LINE_LENGTH];
+                    char line2[MAX_LINE_LENGTH];
+                    int cline1=0;
+                    int cline2=0;
+                    while(fgets(line1,sizeof(line1),file1)!=NULL){
+                        cline1++;
+                    }
+                    rewind(file1);
+                    while(fgets(line2,sizeof(line2),file2)!=NULL){
+                        cline2++;
+                    }
+                    rewind(file2);
+                    if(cline1!=cline2)
+                    {
+                        return true;
+                    }
+                    while (fgets(line1, sizeof(line1), file1) != NULL && fgets(line2, sizeof(line2), file2) != NULL)
+                    {
+                        if (strcmp(line1, line2) != 0)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+    return false;
+}
 
 bool HEAD_flag()
 {
-    FILE *myid = fopen(".monster/myid", "r");
-    char myidd[100];
-    nuller(myidd);
-    fgets(myidd, sizeof(myidd), myid);
-    myidd[strlen(myidd)] = '\0';
-    if (atoi(myidd) == commitcounter() - 1)
+    FILE* file=fopen(".monster/myid","r");
+    char number[100];
+    fgets(number,sizeof(number),file);
+    number[strlen(number)]='\0';
+    int id=atoi(number);
+    if(id==commitcounter()-1)
+    {
         return true;
+    }
     return false;
 }
 
@@ -225,12 +286,10 @@ int init(int argc, char *argv[])
         file = fopen(".monster/myid", "w");
         fprintf(file, "999");
         fclose(file);
-        HEAD_flag();
         return 0;
     }
     else
     {
-        HEAD_flag();
         printf("Monster repository has already initialized\n");
         return 1;
     }
@@ -608,20 +667,7 @@ void reset_file(char *path)
         printf("File %s is already unstaged!\n", path);
         return;
     }
-    FILE *file = fopen(".monster/staged", "r");
-    char line[MAX_LINE_LENGTH];
-    int flag = 0;
-    while (fgets(line, sizeof(line), file))
-    {
-        line[strlen(line) - 1] = '\0';
-        if (strcmp(line, path) == 0)
-        {
-            flag = 1;
-            break;
-        }
-    }
-    fclose(file);
-    if (flag)
+    if (check_if_file_is_unstaged(path) == 'S')
     {
         int start = 0;
         char file_name[MAX_FILENAME_LENGTH];
@@ -648,7 +694,7 @@ void reset_file(char *path)
             {
                 if (strcmp(entry->d_name, file_name) == 0)
                 {
-                    file = fopen(address, "r");
+                    FILE *file = fopen(address, "r");
                     char file_name[MAX_FILENAME_LENGTH];
                     sprintf(file_name, ".monster/unstaged/%s", entry->d_name);
                     FILE *file2 = fopen(file_name, "w");
@@ -683,48 +729,56 @@ void reset_file(char *path)
 
 char status_mode(char *path)
 {
-    FILE *file1 = fopen(path, "r");
-    if (file1 == NULL)
-        return 'D';
-    FILE *file2;
-    char file_name[MAX_FILENAME_LENGTH];
-    char line1[MAX_LINE_LENGTH];
-    char line2[MAX_LINE_LENGTH];
-    int start = 0;
-    for (int i = strlen(path) - 1; i >= 0; i--)
-    {
-        if (path[i] == '/')
-        {
-            start = i + 1;
-            break;
+    DIR* dir=opendir(".monster/commits");
+    struct dirent* entry;
+    while((entry=readdir(dir))!=NULL){
+        if(strcmp(entry->d_name,".")!=0 && strcmp(entry->d_name,".")!=0){
+            char name[MAX_FILENAME_LENGTH];
+            int start=0;
+            for(int i=strlen(path)-1;i>=0;i--){
+                if(path[i]=='/'){
+                    start=i+1;
+                    break;
+                }
+            }
+            for(int i=start;i<strlen(path);i++){
+                name[i-start]=path[i];
+            }
+            name[strlen(path)-start]='\0';
+            if(strcmp(name,entry->d_name)==0){
+                char filename1[MAX_FILENAME_LENGTH];
+                
+                sprintf(filename1,".monster/commits/%s",entry->d_name);
+                FILE* file1=fopen(filename1,"r");
+                FILE* file2=fopen(path,"r");
+                char line1[MAX_LINE_LENGTH];
+                char line2[MAX_LINE_LENGTH];
+                int cline1=0;
+                int cline2=0;
+                while(fgets(line1,sizeof(line1),file1)!=NULL){
+                    cline1++;
+                }
+                rewind(file1);
+                while(fgets(line2,sizeof(line2),file2)!=NULL){
+                    cline2++;
+                }
+                rewind(file2);
+                if(cline1!=cline2)
+                {
+                    return 'M';
+                }
+                while (fgets(line1, sizeof(line1), file1) != NULL && fgets(line2, sizeof(line2), file2) != NULL)
+                {
+                    if (strcmp(line1, line2) != 0)
+                    {
+                        return 'M';
+                    }
+                }
+                return 'A';
+            }
         }
     }
-    strcpy(file_name, ".monster/added/");
-    for (int i = start; i < strlen(path); i++)
-    {
-        file_name[i - start + 15] = path[i];
-    }
-    file2 = fopen(file_name, "r");
-    int counter_line1 = 0;
-    int counter_line2 = 0;
-    while (fgets(line1, sizeof(line1), file1) != NULL)
-    {
-        counter_line1++;
-    }
-    rewind(file1);
-    while (fgets(line2, sizeof(line2), file2) != NULL)
-    {
-        counter_line2++;
-    }
-    rewind(file2);
-    if (counter_line1 != counter_line2)
-        return 'M';
-    while (fgets(line1, sizeof(line1), file1) != NULL && fgets(line2, sizeof(line2), file2) != NULL)
-    {
-        if (strcmp(line1, line2) != 0)
-            return 'M';
-    }
-    return 'A';
+    return 'D';
 }
 
 void status_file_or_directory(char input[])
@@ -762,9 +816,13 @@ void status_file_or_directory(char input[])
 void status_file(char *path)
 {
     if (check_if_file_is_unstaged(path) == 'S')
+    {
         printf("File %s status: +%c\n", path, status_mode(path));
+    }
     else
-        printf("File %s status: -\n", path);
+    {
+        printf("File %s status: -%c\n", path,status_mode(path));
+    }
     return;
 }
 
@@ -827,13 +885,6 @@ int commit(int argc, char *argv[])
             char file_name_dest_2[MAX_FILENAME_LENGTH];
             int flag = 0;
             int counter_commited_files = 0;
-            DIR *dwadaw = opendir(".monster/added/");
-            struct dirent *kiir;
-            if ((kiir = readdir(dwadaw)) == NULL)
-            {
-                printf("There is no file in staging area!\n");
-                return 1;
-            }
             DIR *mamad = opendir(".monster/commits/");
             struct dirent *memed;
             while ((memed = readdir(mamad)) != NULL)
@@ -852,6 +903,7 @@ int commit(int argc, char *argv[])
                 {
                     flag = 1;
                     sprintf(file_name_src, ".monster/added/%s", entry->d_name);
+                    puts(file_name_src);
                     char commitname[MAX_FILENAME_LENGTH];
                     sprintf(commitname, ".monster/commits%d", commitcounter());
                     mkdir(commitname, 0755);
@@ -860,11 +912,11 @@ int commit(int argc, char *argv[])
                     FILE *file_dest = fopen(file_name_dest, "w");
                     FILE *file_dest_2 = fopen(file_name_dest_2, "w");
                     FILE *file_src = fopen(file_name_src, "r");
-                    char line[MAX_LINE_LENGTH];
-                    while (fgets(line, sizeof(line), file_src) != NULL)
+                    char lineeeee[MAX_LINE_LENGTH];
+                    while (fgets(lineeeee, sizeof(lineeeee), file_src) != NULL)
                     {
-                        fputs(line, file_dest);
-                        fputs(line, file_dest_2);
+                        fputs(lineeeee, file_dest);
+                        fputs(lineeeee, file_dest_2);
                     }
                     fclose(file_dest);
                     fclose(file_dest_2);
@@ -917,7 +969,7 @@ int commit(int argc, char *argv[])
                     fgets(line, sizeof(line), username);
                 }
                 fclose(username);
-                printf("Your commit was succefully done by %sat %swith id:%d\n[%s]", line,asctime(info), id, argv[3]);
+                printf("Your commit was succefully done by %sat %swith id:%d\n[%s]", line, asctime(info), id, argv[3]);
                 file = fopen(".monster/myid", "w");
                 fprintf(file, "%d", id);
                 fclose(file);
@@ -1047,6 +1099,7 @@ int log_git(int argc, char *argv[])
     fclose(file);
     if (argc == 2)
     {
+        printf("aaaaaaaaaaa");
         show_log(999, 0);
         return 0;
     }
@@ -1096,6 +1149,7 @@ int log_git(int argc, char *argv[])
 
 void show_log(int counter, int number)
 {
+    printf("aaa");
     if (counter == commitcounter() - number)
         return;
     char line[MAX_LINE_LENGTH];
@@ -1113,7 +1167,9 @@ void show_log(int counter, int number)
         fgets(line, sizeof(line), file);
         line[strlen(line) - 1] = '\0';
         if (line[0] != '\0')
+        {
             puts(line);
+        }
     }
     rewind(file);
     show_log(counter + 1, number);
@@ -1424,19 +1480,13 @@ int checkout(int argc, char *argv[])
             return 1;
         }
     }
-    if (argv[2][0] < '0' || argv[2][0] > '9')
+    if ((argv[2][0] < '0' || argv[2][0] > '9') && strcmp(argv[2], "HEAD") != 0)
     {
-        DIR *dir0 = opendir(".monster/added/");
-        struct dirent* entryy;
-        for(int i=0;i<2;i++){
-            readdir(dir0);
-        }
-        if (((entryy = readdir(dir0)) != NULL))
+        if (uncommited_change())
         {
             printf("There are uncommited changes!\n");
             return 1;
         }
-        closedir(dir0);
         int flag = 1;
         DIR *dir = opendir(".monster/branches/");
         struct dirent *entry;
@@ -1459,7 +1509,7 @@ int checkout(int argc, char *argv[])
                 fclose(file);
             }
         }
-        if(flag==0)
+        if (flag == 0)
             printf("Switched to branch %s", argv[2]);
         if (flag)
         {
@@ -1470,17 +1520,11 @@ int checkout(int argc, char *argv[])
     }
     if (argv[2][0] >= '0' && argv[2][0] <= '9')
     {
-        DIR *dir0 = opendir(".monster/added/");
-        struct dirent* entryy;
-        for(int i=0;i<2;i++){
-            readdir(dir0);
-        }
-        if (((entryy = readdir(dir0)) != NULL))
+        if (uncommited_change())
         {
             printf("There are uncommited changes!\n");
             return 1;
         }
-        closedir(dir0);
         int flag = 1;
         int id = atoi(argv[2]);
         DIR *dir = opendir(".monster");
@@ -1493,17 +1537,6 @@ int checkout(int argc, char *argv[])
                 sscanf(entry->d_name, "commits%d", &id_to_find);
                 if (id == id_to_find)
                 {
-                    DIR *mamad = opendir(".monster/commits/");
-                    struct dirent *memed;
-                    while ((memed = readdir(mamad)) != NULL)
-                    {
-                        if (strcmp(memed->d_name, ".") != 0 && strcmp(memed->d_name, "..") != 0)
-                        {
-                            char tetete[1000];
-                            sprintf(tetete, ".monster/commits/%s", memed->d_name);
-                            remove(tetete);
-                        }
-                    }
                     flag = 0;
                     char dirname[MAX_FILENAME_LENGTH];
                     nuller(dirname);
@@ -1512,43 +1545,316 @@ int checkout(int argc, char *argv[])
                     struct dirent *entry2;
                     while ((entry2 = readdir(dir2)) != NULL)
                     {
-                        char filename[MAX_FILENAME_LENGTH];
-                        char filename_d[MAX_FILENAME_LENGTH];
-                        nuller(filename);
-                        nuller(filename_d);
-                        sprintf(filename, ".monster/commits%d/%s", id, entry2->d_name);
-                        sprintf(filename_d, ".monster/commits/%s", entry2->d_name);
-                        FILE *file_src = fopen(filename, "r");
-                        FILE *file_dest = fopen(filename_d, "w");
+                        FILE *file1 = fopen(".monster/staged", "r");
                         char line[MAX_LINE_LENGTH];
-                        while (fgets(line, sizeof(line), file_src) != NULL)
+                        while (fgets(line, sizeof(line), file1) != NULL)
                         {
-                            fputs(line, file_dest);
+                            line[strlen(line) - 1] = '\0';
+                            char NAME[MAX_FILENAME_LENGTH];
+                            int start = 0;
+                            for (int i = strlen(line) - 1; i >= 0; i--)
+                            {
+                                if (line[i] == '/')
+                                {
+                                    start = i + 1;
+                                    break;
+                                }
+                            }
+                            for (int i = start; i < strlen(line); i++)
+                            {
+                                NAME[i - start] = line[i];
+                            }
+                            NAME[strlen(line) - start] = '\0';
+                            if (strcmp(entry2->d_name, NAME) == 0)
+                            {
+                                char filename[MAX_FILENAME_LENGTH];
+                                nuller(filename);
+                                sprintf(filename, ".monster/commits%d/%s", id, entry2->d_name);
+                                FILE *file_src = fopen(filename, "r");
+                                FILE *file_dest = fopen(line, "w");
+                                char linedddd[MAX_LINE_LENGTH];
+                                while (fgets(linedddd, sizeof(linedddd), file_src) != NULL)
+                                {
+                                    fputs(linedddd, file_dest);
+                                }
+                            }
                         }
                     }
                     closedir(dir2);
                 }
             }
         }
-        FILE *filedwadwa = fopen(".monster/myid", "w");
-        fprintf(filedwadwa, "%d", id);
-        printf("Switched to commit %d", id);
+        if (flag == 0) 
+        {
+            FILE* filez=fopen(".monster/myid","w");
+            fprintf(filez,"%d",id);
+            printf("Switched to commit %d", id);
+        }
         closedir(dir);
-        return 0;
         if (flag)
         {
             printf("Invalid commit id!\n");
             return 1;
         }
+        return 0;
     }
     if (strcmp(argv[2], "HEAD") == 0)
     {
         char temp[MAX_FILENAME_LENGTH];
         nuller(temp);
-        sprintf(temp, "%d", commitcounter());
+        sprintf(temp, "%d", commitcounter() - 1);
         nuller(argv[2]);
         sprintf(argv[2], "%s", temp);
         return checkout(argc, argv);
+    }
+}
+
+int revert(int argc, char *argv[])
+{
+    if (!config_flag())
+    {
+        FILE *file1 = fopen("/home/mr_nakhjavani/Documents/global_name", "r");
+        FILE *file2 = fopen("/home/mr_nakhjavani/Documents/global_email", "r");
+        if (file1 == NULL || file2 == NULL)
+        {
+            printf("First you have to register your name and email!\n");
+            return 1;
+        }
+    }
+    if (strcmp(argv[2], "-m") == 0 && argv[4][0] >= '0' && argv[4][0] <= '9')
+    {
+        if (uncommited_change())
+        {
+            printf("There are uncommited changes!\n");
+            return 1;
+        }
+        char filenamesrc[MAX_FILENAME_LENGTH];
+        char filenamedest[MAX_FILENAME_LENGTH];
+        sprintf(filenamesrc, ".monster/commits%d/", atoi(argv[4]));
+        DIR *dir = opendir(filenamesrc);
+        nuller(filenamesrc);
+        nuller(filenamedest);
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL)
+        {
+            if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
+            {
+                sprintf(filenamesrc, ".monster/commits%d/%s", atoi(argv[4]), entry->d_name);
+                sprintf(filenamedest, ".monster/added/%s", entry->d_name);
+                FILE *filesrc = fopen(filenamesrc, "r");
+                FILE *filedest = fopen(filenamedest, "w");
+                char line[MAX_LINE_LENGTH];
+                while (fgets(line, sizeof(line), filesrc) != NULL)
+                {
+                    fputs(line, filedest);
+                }
+                fclose(filesrc);
+                fclose(filedest);
+            }
+        }
+        int flag = 1;
+        int id = atoi(argv[4]);
+        DIR *dir3 = opendir(".monster");
+        struct dirent *entry3;
+        while ((entry3 = readdir(dir3)) != NULL)
+        {
+            if (strstr(entry3->d_name, "commits") != NULL && strcmp(entry3->d_name, "commits") != 0)
+            {
+                int id_to_find = 0;
+                sscanf(entry3->d_name, "commits%d", &id_to_find);
+                if (id == id_to_find)
+                {
+                    flag = 0;
+                    char dirname[MAX_FILENAME_LENGTH];
+                    nuller(dirname);
+                    sprintf(dirname, ".monster/commits%d/", id);
+                    DIR *dir2 = opendir(dirname);
+                    struct dirent *entry2;
+                    while ((entry2 = readdir(dir2)) != NULL)
+                    {
+                        FILE *file1 = fopen(".monster/staged", "r");
+                        char line[MAX_LINE_LENGTH];
+                        while (fgets(line, sizeof(line), file1) != NULL)
+                        {
+                            line[strlen(line) - 1] = '\0';
+                            char NAME[MAX_FILENAME_LENGTH];
+                            int start = 0;
+                            for (int i = strlen(line) - 1; i >= 0; i--)
+                            {
+                                if (line[i] == '/')
+                                {
+                                    start = i + 1;
+                                    break;
+                                }
+                            }
+                            for (int i = start; i < strlen(line); i++)
+                            {
+                                NAME[i - start] = line[i];
+                            }
+                            NAME[strlen(line) - start] = '\0';
+                            if (strcmp(entry2->d_name, NAME) == 0)
+                            {
+                                char filename[MAX_FILENAME_LENGTH];
+                                nuller(filename);
+                                sprintf(filename, ".monster/commits%d/%s", id, entry2->d_name);
+                                FILE *file_src = fopen(filename, "r");
+                                FILE *file_dest = fopen(line, "w");
+                                char linedddd[MAX_LINE_LENGTH];
+                                while (fgets(linedddd, sizeof(linedddd), file_src) != NULL)
+                                {
+                                    fputs(linedddd, file_dest);
+                                }
+                            }
+                        }
+                    }
+                    closedir(dir2);
+                }
+            }
+        }
+        if (flag)
+        {
+            printf("Wrong commit id!\n");
+            return 1;
+        }
+        closedir(dir);
+        sprintf(argv[0], "monster");
+        sprintf(argv[1], "commit");
+        sprintf(argv[2], "-m");
+        return commit(4, argv);
+    }
+    else if (argv[2][0] >= '0' && argv[2][0] <= '9')
+    {
+        if (uncommited_change())
+        {
+            printf("There are uncommited changes!\n");
+            return 1;
+        }
+        char filenamesrc[MAX_FILENAME_LENGTH];
+        char filenamedest[MAX_FILENAME_LENGTH];
+        sprintf(filenamesrc, ".monster/commits%d", atoi(argv[2]));
+        DIR *dir = opendir(filenamesrc);
+        nuller(filenamesrc);
+        nuller(filenamedest);
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL)
+        {
+            if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
+            {
+                sprintf(filenamesrc, ".monster/commits%d/%s", atoi(argv[2]), entry->d_name);
+                sprintf(filenamedest, ".monster/added/%s", entry->d_name);
+                FILE *filesrc = fopen(filenamesrc, "r");
+                FILE *filedest = fopen(filenamedest, "w");
+                char line[MAX_LINE_LENGTH];
+                while (fgets(line, sizeof(line), filesrc) != NULL)
+                {
+                    fputs(line, filedest);
+                }
+                fclose(filedest);
+                fclose(filesrc);
+            }
+        }
+        int flag = 1;
+        int id = atoi(argv[2]);
+        DIR *dir3 = opendir(".monster");
+        struct dirent *entry3;
+        while ((entry3 = readdir(dir3)) != NULL)
+        {
+            if (strstr(entry3->d_name, "commits") != NULL && strcmp(entry3->d_name, "commits") != 0)
+            {
+                int id_to_find = 0;
+                sscanf(entry3->d_name, "commits%d", &id_to_find);
+                if (id == id_to_find)
+                {
+                    flag = 0;
+                    char dirname[MAX_FILENAME_LENGTH];
+                    nuller(dirname);
+                    sprintf(dirname, ".monster/commits%d/", id);
+                    DIR *dir2 = opendir(dirname);
+                    struct dirent *entry2;
+                    while ((entry2 = readdir(dir2)) != NULL)
+                    {
+                        FILE *file1 = fopen(".monster/staged", "r");
+                        char line[MAX_LINE_LENGTH];
+                        while (fgets(line, sizeof(line), file1) != NULL)
+                        {
+                            line[strlen(line) - 1] = '\0';
+                            char NAME[MAX_FILENAME_LENGTH];
+                            int start = 0;
+                            for (int i = strlen(line) - 1; i >= 0; i--)
+                            {
+                                if (line[i] == '/')
+                                {
+                                    start = i + 1;
+                                    break;
+                                }
+                            }
+                            for (int i = start; i < strlen(line); i++)
+                            {
+                                NAME[i - start] = line[i];
+                            }
+                            NAME[strlen(line) - start] = '\0';
+                            if (strcmp(entry2->d_name, NAME) == 0)
+                            {
+                                char filename[MAX_FILENAME_LENGTH];
+                                nuller(filename);
+                                sprintf(filename, ".monster/commits%d/%s", id, entry2->d_name);
+                                FILE *file_src = fopen(filename, "r");
+                                FILE *file_dest = fopen(line, "w");
+                                char linedddd[MAX_LINE_LENGTH];
+                                while (fgets(linedddd, sizeof(linedddd), file_src) != NULL)
+                                {
+                                    fputs(linedddd, file_dest);
+                                }
+                            }
+                        }
+                    }
+                    closedir(dir2);
+                }
+            }
+        }
+        if (flag)
+        {
+            printf("Wrong commit id!\n");
+            return 1;
+        }
+        closedir(dir);
+        FILE *filee = fopen(".monster/commitsinformation", "r");
+        char linee[MAX_LINE_LENGTH];
+        for (int i = 0; i < (atoi(argv[2]) - 1000); i++)
+        {
+            for (int j = 0; j < 8; j++)
+            {
+                fgets(linee, sizeof(linee), filee);
+            }
+        }
+        for (int i = 0; i < 7; i++)
+        {
+            fgets(linee, sizeof(linee), filee);
+        }
+        linee[strlen(linee) - 1] = '\0';
+        sprintf(argv[0], "monster");
+        sprintf(argv[1], "commit");
+        sprintf(argv[2], "-m");
+        argv[3] = linee;
+        return commit(4, argv);
+    }
+    else if (strcmp(argv[2], "-n") == 0)
+    {
+        
+        return 0;
+    }
+    else if (strstr(argv[2], "HEAD") != NULL)
+    {
+        return 0;
+    }
+    else if (strcmp(argv[2], "-m") == 0 && strstr(argv[4], "HEAD") != NULL)
+    {
+        return 0;
+    }
+    else
+    {
+        printf("Invalid inputs!\n");
+        return 1;
     }
 }
 
@@ -1581,6 +1887,8 @@ int main(int argc, char *argv[])
         return branch(argc, argv);
     if (strcmp(argv[1], "checkout") == 0)
         return checkout(argc, argv);
+    if (strcmp(argv[1], "revert") == 0)
+        return revert(argc, argv);
     if (init_flag())
     {
         char cwd[1024];
@@ -1627,6 +1935,8 @@ int main(int argc, char *argv[])
                     return branch(count_of_words, words);
                 if (strcmp(words[1], "checkout") == 0)
                     return checkout(count_of_words, words);
+                if (strcmp(words[1], "revert") == 0)
+                    return revert(count_of_words, words);
             }
         }
         closedir(dir);
@@ -1671,6 +1981,8 @@ int main(int argc, char *argv[])
                     return branch(count_of_words, words);
                 if (strcmp(words[1], "checkout") == 0)
                     return checkout(count_of_words, words);
+                if (strcmp(words[1], "revert") == 0)
+                    return revert(count_of_words, words);
             }
         }
         printf("Invalid command!\n");
