@@ -917,7 +917,7 @@ int commit(int argc, char *argv[])
                     fgets(line, sizeof(line), username);
                 }
                 fclose(username);
-                printf("Your commit was succefully done by %sat %d:%d:%d\nwith id:%d\n[%s]", line, info->tm_hour, info->tm_min, info->tm_sec, id, argv[3]);
+                printf("Your commit was succefully done by %sat %swith id:%d\n[%s]", line,asctime(info), id, argv[3]);
                 file = fopen(".monster/myid", "w");
                 fprintf(file, "%d", id);
                 fclose(file);
