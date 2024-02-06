@@ -46,47 +46,78 @@ bool HEAD_flag();
 int checkout(int argc, char *argv[]);
 int revert(int argc, char *argv[]);
 bool uncommited_change();
+int monster_tag(int argc, char *argv[]);
+int tag_counter();
+void red();
+int grerp(int argc, char *argv[]);
+
+void red()
+{
+    printf("\033[1;31m");
+}
+
+int tag_counter()
+{
+    FILE *file = fopen(".monster/taginformation", "r");
+    int line = 0;
+    char linee[MAX_LINE_LENGTH];
+    while (fgets(linee, sizeof(linee), file) != NULL)
+    {
+        line++;
+    }
+    line /= 5;
+    return line + 1;
+}
 
 bool uncommited_change()
 {
-    DIR* dir=opendir(".monster/commits");
-    struct dirent* entry;
-    FILE* file=fopen(".monster/staged","r");
-    while((entry=readdir(dir))!=NULL){
-        if(strcmp(entry->d_name,".")!=0 && strcmp(entry->d_name,".")!=0){
+    DIR *dir = opendir(".monster/commits");
+    struct dirent *entry;
+    FILE *file = fopen(".monster/staged", "r");
+    while ((entry = readdir(dir)) != NULL)
+    {
+        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, ".") != 0)
+        {
             char line[MAX_LINE_LENGTH];
-            while(fgets(line,sizeof(line),file)!=NULL){
-                line[strlen(line)-1]='\0';
+            while (fgets(line, sizeof(line), file) != NULL)
+            {
+                line[strlen(line) - 1] = '\0';
                 char name[MAX_FILENAME_LENGTH];
-                int start=0;
-                for(int i=strlen(line)-1;i>=0;i--){
-                    if(line[i]=='/'){
-                        start=i+1;
+                int start = 0;
+                for (int i = strlen(line) - 1; i >= 0; i--)
+                {
+                    if (line[i] == '/')
+                    {
+                        start = i + 1;
                         break;
                     }
                 }
-                for(int i=start;i<strlen(line);i++){
-                    name[i-start]=line[i];
+                for (int i = start; i < strlen(line); i++)
+                {
+                    name[i - start] = line[i];
                 }
-                name[strlen(line)-start]='\0';
-                if(strcmp(name,entry->d_name)==0){
+                name[strlen(line) - start] = '\0';
+                if (strcmp(name, entry->d_name) == 0)
+                {
                     char filename1[MAX_FILENAME_LENGTH];
-                    sprintf(filename1,".monster/commits/%s",entry->d_name);
-                    FILE* file1=fopen(filename1,"r");
-                    FILE* file2=fopen(line,"r");
+                    sprintf(filename1, ".monster/commits/%s", entry->d_name);
+                    FILE *file1 = fopen(filename1, "r");
+                    FILE *file2 = fopen(line, "r");
                     char line1[MAX_LINE_LENGTH];
                     char line2[MAX_LINE_LENGTH];
-                    int cline1=0;
-                    int cline2=0;
-                    while(fgets(line1,sizeof(line1),file1)!=NULL){
+                    int cline1 = 0;
+                    int cline2 = 0;
+                    while (fgets(line1, sizeof(line1), file1) != NULL)
+                    {
                         cline1++;
                     }
                     rewind(file1);
-                    while(fgets(line2,sizeof(line2),file2)!=NULL){
+                    while (fgets(line2, sizeof(line2), file2) != NULL)
+                    {
                         cline2++;
                     }
                     rewind(file2);
-                    if(cline1!=cline2)
+                    if (cline1 != cline2)
                     {
                         return true;
                     }
@@ -106,12 +137,12 @@ bool uncommited_change()
 
 bool HEAD_flag()
 {
-    FILE* file=fopen(".monster/myid","r");
+    FILE *file = fopen(".monster/myid", "r");
     char number[100];
-    fgets(number,sizeof(number),file);
-    number[strlen(number)]='\0';
-    int id=atoi(number);
-    if(id==commitcounter()-1)
+    fgets(number, sizeof(number), file);
+    number[strlen(number)] = '\0';
+    int id = atoi(number);
+    if (id == commitcounter() - 1)
     {
         return true;
     }
@@ -285,6 +316,10 @@ int init(int argc, char *argv[])
         fclose(file);
         file = fopen(".monster/myid", "w");
         fprintf(file, "999");
+        fclose(file);
+        file = fopen(".monster/tagname", "w");
+        fclose(file);
+        file = fopen(".monster/taginformation", "w");
         fclose(file);
         return 0;
     }
@@ -729,41 +764,49 @@ void reset_file(char *path)
 
 char status_mode(char *path)
 {
-    DIR* dir=opendir(".monster/commits");
-    struct dirent* entry;
-    while((entry=readdir(dir))!=NULL){
-        if(strcmp(entry->d_name,".")!=0 && strcmp(entry->d_name,".")!=0){
+    DIR *dir = opendir(".monster/commits");
+    struct dirent *entry;
+    while ((entry = readdir(dir)) != NULL)
+    {
+        if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, ".") != 0)
+        {
             char name[MAX_FILENAME_LENGTH];
-            int start=0;
-            for(int i=strlen(path)-1;i>=0;i--){
-                if(path[i]=='/'){
-                    start=i+1;
+            int start = 0;
+            for (int i = strlen(path) - 1; i >= 0; i--)
+            {
+                if (path[i] == '/')
+                {
+                    start = i + 1;
                     break;
                 }
             }
-            for(int i=start;i<strlen(path);i++){
-                name[i-start]=path[i];
+            for (int i = start; i < strlen(path); i++)
+            {
+                name[i - start] = path[i];
             }
-            name[strlen(path)-start]='\0';
-            if(strcmp(name,entry->d_name)==0){
+            name[strlen(path) - start] = '\0';
+            if (strcmp(name, entry->d_name) == 0)
+            {
                 char filename1[MAX_FILENAME_LENGTH];
-                
-                sprintf(filename1,".monster/commits/%s",entry->d_name);
-                FILE* file1=fopen(filename1,"r");
-                FILE* file2=fopen(path,"r");
+
+                sprintf(filename1, ".monster/commits/%s", entry->d_name);
+                FILE *file1 = fopen(filename1, "r");
+                FILE *file2 = fopen(path, "r");
                 char line1[MAX_LINE_LENGTH];
                 char line2[MAX_LINE_LENGTH];
-                int cline1=0;
-                int cline2=0;
-                while(fgets(line1,sizeof(line1),file1)!=NULL){
+                int cline1 = 0;
+                int cline2 = 0;
+                while (fgets(line1, sizeof(line1), file1) != NULL)
+                {
                     cline1++;
                 }
                 rewind(file1);
-                while(fgets(line2,sizeof(line2),file2)!=NULL){
+                while (fgets(line2, sizeof(line2), file2) != NULL)
+                {
                     cline2++;
                 }
                 rewind(file2);
-                if(cline1!=cline2)
+                if (cline1 != cline2)
                 {
                     return 'M';
                 }
@@ -821,7 +864,7 @@ void status_file(char *path)
     }
     else
     {
-        printf("File %s status: -%c\n", path,status_mode(path));
+        printf("File %s status: -%c\n", path, status_mode(path));
     }
     return;
 }
@@ -885,25 +928,12 @@ int commit(int argc, char *argv[])
             char file_name_dest_2[MAX_FILENAME_LENGTH];
             int flag = 0;
             int counter_commited_files = 0;
-            DIR *mamad = opendir(".monster/commits/");
-            struct dirent *memed;
-            while ((memed = readdir(mamad)) != NULL)
-            {
-                if (strcmp(memed->d_name, ".") != 0 && strcmp(memed->d_name, "..") != 0)
-                {
-                    char tetete[1000];
-                    sprintf(tetete, ".monster/commits/%s", memed->d_name);
-                    remove(tetete);
-                }
-            }
-            closedir(mamad);
             while ((entry = readdir(dir)) != NULL)
             {
                 if (strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0)
                 {
                     flag = 1;
                     sprintf(file_name_src, ".monster/added/%s", entry->d_name);
-                    puts(file_name_src);
                     char commitname[MAX_FILENAME_LENGTH];
                     sprintf(commitname, ".monster/commits%d", commitcounter());
                     mkdir(commitname, 0755);
@@ -1099,7 +1129,6 @@ int log_git(int argc, char *argv[])
     fclose(file);
     if (argc == 2)
     {
-        printf("aaaaaaaaaaa");
         show_log(999, 0);
         return 0;
     }
@@ -1149,7 +1178,6 @@ int log_git(int argc, char *argv[])
 
 void show_log(int counter, int number)
 {
-    printf("aaa");
     if (counter == commitcounter() - number)
         return;
     char line[MAX_LINE_LENGTH];
@@ -1584,10 +1612,10 @@ int checkout(int argc, char *argv[])
                 }
             }
         }
-        if (flag == 0) 
+        if (flag == 0)
         {
-            FILE* filez=fopen(".monster/myid","w");
-            fprintf(filez,"%d",id);
+            FILE *filez = fopen(".monster/myid", "w");
+            fprintf(filez, "%d", id);
             printf("Switched to commit %d", id);
         }
         closedir(dir);
@@ -1840,21 +1868,774 @@ int revert(int argc, char *argv[])
     }
     else if (strcmp(argv[2], "-n") == 0)
     {
-        
-        return 0;
+        if (argc == 4)
+        {
+            int flag = 1;
+            int id = atoi(argv[3]);
+            DIR *dir3 = opendir(".monster");
+            struct dirent *entry3;
+            while ((entry3 = readdir(dir3)) != NULL)
+            {
+                if (strstr(entry3->d_name, "commits") != NULL && strcmp(entry3->d_name, "commits") != 0)
+                {
+                    int id_to_find = 0;
+                    sscanf(entry3->d_name, "commits%d", &id_to_find);
+                    if (id == id_to_find)
+                    {
+                        flag = 0;
+                        char dirname[MAX_FILENAME_LENGTH];
+                        nuller(dirname);
+                        sprintf(dirname, ".monster/commits%d/", id);
+                        DIR *dir2 = opendir(dirname);
+                        struct dirent *entry2;
+                        while ((entry2 = readdir(dir2)) != NULL)
+                        {
+                            FILE *file1 = fopen(".monster/staged", "r");
+                            char line[MAX_LINE_LENGTH];
+                            while (fgets(line, sizeof(line), file1) != NULL)
+                            {
+                                line[strlen(line) - 1] = '\0';
+                                char NAME[MAX_FILENAME_LENGTH];
+                                int start = 0;
+                                for (int i = strlen(line) - 1; i >= 0; i--)
+                                {
+                                    if (line[i] == '/')
+                                    {
+                                        start = i + 1;
+                                        break;
+                                    }
+                                }
+                                for (int i = start; i < strlen(line); i++)
+                                {
+                                    NAME[i - start] = line[i];
+                                }
+                                NAME[strlen(line) - start] = '\0';
+                                if (strcmp(entry2->d_name, NAME) == 0)
+                                {
+                                    char filename[MAX_FILENAME_LENGTH];
+                                    nuller(filename);
+                                    sprintf(filename, ".monster/commits%d/%s", id, entry2->d_name);
+                                    FILE *file_src = fopen(filename, "r");
+                                    FILE *file_dest = fopen(line, "w");
+                                    char linedddd[MAX_LINE_LENGTH];
+                                    while (fgets(linedddd, sizeof(linedddd), file_src) != NULL)
+                                    {
+                                        fputs(linedddd, file_dest);
+                                    }
+                                }
+                            }
+                        }
+                        closedir(dir2);
+                    }
+                }
+            }
+            if (flag)
+            {
+                printf("Wrong commit id!\n");
+                return 1;
+            }
+        }
+        else if (argc == 3)
+        {
+            int flag = 1;
+            int id = commitcounter() - 1;
+            DIR *dir3 = opendir(".monster");
+            struct dirent *entry3;
+            while ((entry3 = readdir(dir3)) != NULL)
+            {
+                if (strstr(entry3->d_name, "commits") != NULL && strcmp(entry3->d_name, "commits") != 0)
+                {
+                    int id_to_find = 0;
+                    sscanf(entry3->d_name, "commits%d", &id_to_find);
+                    if (id == id_to_find)
+                    {
+                        flag = 0;
+                        char dirname[MAX_FILENAME_LENGTH];
+                        nuller(dirname);
+                        sprintf(dirname, ".monster/commits%d/", id);
+                        DIR *dir2 = opendir(dirname);
+                        struct dirent *entry2;
+                        while ((entry2 = readdir(dir2)) != NULL)
+                        {
+                            FILE *file1 = fopen(".monster/staged", "r");
+                            char line[MAX_LINE_LENGTH];
+                            while (fgets(line, sizeof(line), file1) != NULL)
+                            {
+                                line[strlen(line) - 1] = '\0';
+                                char NAME[MAX_FILENAME_LENGTH];
+                                int start = 0;
+                                for (int i = strlen(line) - 1; i >= 0; i--)
+                                {
+                                    if (line[i] == '/')
+                                    {
+                                        start = i + 1;
+                                        break;
+                                    }
+                                }
+                                for (int i = start; i < strlen(line); i++)
+                                {
+                                    NAME[i - start] = line[i];
+                                }
+                                NAME[strlen(line) - start] = '\0';
+                                if (strcmp(entry2->d_name, NAME) == 0)
+                                {
+                                    char filename[MAX_FILENAME_LENGTH];
+                                    nuller(filename);
+                                    sprintf(filename, ".monster/commits%d/%s", id, entry2->d_name);
+                                    FILE *file_src = fopen(filename, "r");
+                                    FILE *file_dest = fopen(line, "w");
+                                    char linedddd[MAX_LINE_LENGTH];
+                                    while (fgets(linedddd, sizeof(linedddd), file_src) != NULL)
+                                    {
+                                        fputs(linedddd, file_dest);
+                                    }
+                                }
+                            }
+                        }
+                        closedir(dir2);
+                    }
+                }
+            }
+            if (flag)
+            {
+                printf("Wrong commit id!\n");
+                return 1;
+            }
+        }
+        else
+        {
+            printf("Invalid inputs!\n");
+            return 1;
+        }
     }
     else if (strstr(argv[2], "HEAD") != NULL)
     {
-        return 0;
+        int number = 0;
+        sscanf(argv[2], "HEAD-%d", &number);
+        nuller(argv[2]);
+        int id = commitcounter() - number - 1;
+        sprintf(argv[2], "%d", id);
+        return revert(3, argv);
     }
     else if (strcmp(argv[2], "-m") == 0 && strstr(argv[4], "HEAD") != NULL)
     {
-        return 0;
+        int number = 0;
+        sscanf(argv[4], "HEAD-%d", &number);
+        nuller(argv[4]);
+        int id = commitcounter() - number - 1;
+        sprintf(argv[4], "%d", id);
+        return revert(5, argv);
     }
     else
     {
         printf("Invalid inputs!\n");
         return 1;
+    }
+}
+
+int monster_tag(int argc, char *argv[])
+{
+    if (!config_flag())
+    {
+        FILE *file1 = fopen("/home/mr_nakhjavani/Documents/global_name", "r");
+        FILE *file2 = fopen("/home/mr_nakhjavani/Documents/global_email", "r");
+        if (file1 == NULL || file2 == NULL)
+        {
+            printf("First you have to register your name and email!\n");
+            return 1;
+        }
+    }
+    if (argc == 2)
+    {
+        FILE *file = fopen(".monster/tagname", "r");
+        char *names[MAX_WORDS_COUNT_IN_A_COMMAND];
+        for (int i = 0; i < MAX_WORDS_COUNT_IN_A_COMMAND; i++)
+        {
+            names[i] = (char *)malloc(1000);
+        }
+        int counter = 0;
+        while (fgets(names[counter], sizeof(names[counter]), file) != NULL)
+        {
+
+            counter++;
+        }
+        for (int i = 0; i < counter; i++)
+        {
+            for (int j = i + 1; j < counter; j++)
+            {
+                if (names[i][0] > names[j][0])
+                {
+                    char *temp = names[i];
+                    names[i] = names[j];
+                    names[j] = temp;
+                }
+                if (names[i][0] == names[j][0] && names[i][1] > names[j][1])
+                {
+                    char *temp = names[i];
+                    names[i] = names[j];
+                    names[j] = temp;
+                }
+                if (names[i][0] == names[j][0] && names[i][1] == names[j][1] && names[i][2] > names[j][2])
+                {
+                    char *temp = names[i];
+                    names[i] = names[j];
+                    names[j] = temp;
+                }
+            }
+        }
+
+        for (int i = 0; i < counter; i++)
+        {
+            puts(names[i]);
+        }
+        return 0;
+    }
+    else if (strcmp(argv[2], "show") == 0)
+    {
+        FILE *file = fopen(".monster/taginformation", "r");
+        char ans[MAX_LINE_LENGTH];
+        int n;
+        int flag = 0;
+        sprintf(ans, "tag %s", argv[3]);
+        for (int i = 0; i < tag_counter(); i++)
+        {
+            for (int j = 0; j < 5; j++)
+            {
+                char line[MAX_LINE_LENGTH];
+                nuller(line);
+                fgets(line, sizeof(line), file);
+                line[strlen(line) - 1] = '\0';
+                if (strcmp(line, ans) == 0)
+                {
+                    n = i + 1;
+                    flag = 1;
+                    break;
+                }
+            }
+            if (flag)
+            {
+                break;
+            }
+        }
+        if (flag == 0)
+        {
+            printf("Wrong tag name!\n");
+            return 1;
+        }
+        for (int i = 1; i < n; i++)
+        {
+            for (int j = 0; j < 5; j++)
+            {
+                char line[MAX_LINE_LENGTH];
+                nuller(line);
+                fgets(line, sizeof(line), file);
+            }
+        }
+        for (int i = 0; i < 5; i++)
+        {
+            char line[MAX_LINE_LENGTH];
+            nuller(line);
+            fgets(line, sizeof(line), file);
+            puts(line);
+        }
+        return 0;
+    }
+    else if (strcmp(argv[2], "-a") == 0)
+    {
+        if (strcmp(argv[4], "-m") == 0)
+        {
+            if (strcmp(argv[6], "-c") == 0)
+            {
+                FILE *temp = fopen(".monster/tagname", "r");
+                char templine[MAX_LINE_LENGTH];
+                while (fgets(templine, sizeof(templine), temp) != NULL)
+                {
+                    templine[strlen(templine) - 1] = '\0';
+                    if (strcmp(templine, argv[3]) == 0)
+                    {
+                        printf("Tag already exists!\n");
+                        return 1;
+                    }
+                }
+                fclos(temp);
+                FILE *file = fopen(".monster/tagname", "a");
+                fputs(argv[3], file);
+                fclose(file);
+                file = fopen(".monster/taginformation", "a");
+                fprintf(file, "tag %s\n", argv[3]);
+                fprintf(file, "commit %s\n", argv[7]);
+                char line[MAX_LINE_LENGTH];
+                char line1[MAX_LINE_LENGTH];
+                FILE *username = fopen("/home/mr_nakhjavani/Documents/global_name", "r");
+                fgets(line, sizeof(line), username);
+                if (line == NULL)
+                {
+                    username = fopen(".monster/config_username", "r");
+                    fgets(line, sizeof(line), username);
+                }
+                line[strlen(line) - 1] = '\0';
+                fclose(username);
+                FILE *email = fopen("/home/mr_nakhjavani/Documents/global_email", "r");
+                fgets(line1, sizeof(line1), email);
+                if (line1 == NULL)
+                {
+                    username = fopen(".monster/config_email", "r");
+                    fgets(line1, sizeof(line1), email);
+                }
+                line1[strlen(line1) - 1] = '\0';
+                fclose(email);
+                fprintf(file, "Author: %s <%s>", line, line1);
+                time_t rawtime;
+                struct tm *info;
+                time(&rawtime);
+                info = localtime(&rawtime);
+                fprintf(file, "Date: %s", asctime(info));
+                fprintf(file, "Message: %s", argv[5]);
+                fclose(file);
+            }
+            else
+            {
+                FILE *temp = fopen(".monster/tagname", "r");
+                char templine[MAX_LINE_LENGTH];
+                while (fgets(templine, sizeof(templine), temp) != NULL)
+                {
+                    templine[strlen(templine) - 1] = '\0';
+                    if (strcmp(templine, argv[3]) == 0)
+                    {
+                        printf("Tag already exists!\n");
+                        return 1;
+                    }
+                }
+                fclos(temp);
+                FILE *file = fopen(".monster/tagname", "a");
+                fputs(argv[3], file);
+                fclose(file);
+                file = fopen(".monster/taginformation", "a");
+                fprintf(file, "tag %s\n", argv[3]);
+                FILE *temp = fopen(".monster/myid", "r");
+                char l[MAX_LINE_LENGTH];
+                fgets(l, sizeof(l), temp);
+                l[strlen(l) - 1] = '\0';
+                fprintf(file, "commit %d", atoi(l));
+                char line[MAX_LINE_LENGTH];
+                char line1[MAX_LINE_LENGTH];
+                FILE *username = fopen("/home/mr_nakhjavani/Documents/global_name", "r");
+                fgets(line, sizeof(line), username);
+                if (line == NULL)
+                {
+                    username = fopen(".monster/config_username", "r");
+                    fgets(line, sizeof(line), username);
+                }
+                line[strlen(line) - 1] = '\0';
+                fclose(username);
+                FILE *email = fopen("/home/mr_nakhjavani/Documents/global_email", "r");
+                fgets(line1, sizeof(line1), email);
+                if (line1 == NULL)
+                {
+                    username = fopen(".monster/config_email", "r");
+                    fgets(line1, sizeof(line1), email);
+                }
+                line1[strlen(line1) - 1] = '\0';
+                fclose(email);
+                fprintf(file, "Author: %s <%s>", line, line1);
+                time_t rawtime;
+                struct tm *info;
+                time(&rawtime);
+                info = localtime(&rawtime);
+                fprintf(file, "Date: %s", asctime(info));
+                fprintf(file, "Message: %s", argv[5]);
+                fclose(file);
+            }
+        }
+        else
+        {
+            if (strcmp(argv[6], "-c") == 0)
+            {
+                FILE *temp = fopen(".monster/tagname", "r");
+                char templine[MAX_LINE_LENGTH];
+                while (fgets(templine, sizeof(templine), temp) != NULL)
+                {
+                    templine[strlen(templine) - 1] = '\0';
+                    if (strcmp(templine, argv[3]) == 0)
+                    {
+                        printf("Tag already exists!\n");
+                        return 1;
+                    }
+                }
+                fclos(temp);
+                FILE *file = fopen(".monster/tagname", "a");
+                fputs(argv[3], file);
+                fclose(file);
+                file = fopen(".monster/taginformation", "a");
+                fprintf(file, "tag %s\n", argv[3]);
+                fprintf(file, "commit %s\n", argv[7]);
+                char line[MAX_LINE_LENGTH];
+                char line1[MAX_LINE_LENGTH];
+                FILE *username = fopen("/home/mr_nakhjavani/Documents/global_name", "r");
+                fgets(line, sizeof(line), username);
+                if (line == NULL)
+                {
+                    username = fopen(".monster/config_username", "r");
+                    fgets(line, sizeof(line), username);
+                }
+                line[strlen(line) - 1] = '\0';
+                fclose(username);
+                FILE *email = fopen("/home/mr_nakhjavani/Documents/global_email", "r");
+                fgets(line1, sizeof(line1), email);
+                if (line1 == NULL)
+                {
+                    username = fopen(".monster/config_email", "r");
+                    fgets(line1, sizeof(line1), email);
+                }
+                line1[strlen(line1) - 1] = '\0';
+                fclose(email);
+                fprintf(file, "Author: %s <%s>", line, line1);
+                time_t rawtime;
+                struct tm *info;
+                time(&rawtime);
+                info = localtime(&rawtime);
+                fprintf(file, "Date: %s", asctime(info));
+                fprintf(file, "Message: [empty]");
+                fclose(file);
+            }
+            else
+            {
+                FILE *temp = fopen(".monster/tagname", "r");
+                char templine[MAX_LINE_LENGTH];
+                while (fgets(templine, sizeof(templine), temp) != NULL)
+                {
+                    templine[strlen(templine) - 1] = '\0';
+                    if (strcmp(templine, argv[3]) == 0)
+                    {
+                        printf("Tag already exists!\n");
+                        return 1;
+                    }
+                }
+                fclos(temp);
+                FILE *file = fopen(".monster/tagname", "a");
+                fputs(argv[3], file);
+                fclose(file);
+                file = fopen(".monster/taginformation", "a");
+                fprintf(file, "tag %s\n", argv[3]);
+                FILE *temp = fopen(".monster/myid", "r");
+                char l[MAX_LINE_LENGTH];
+                fgets(l, sizeof(l), temp);
+                l[strlen(l) - 1] = '\0';
+                fprintf(file, "commit %d", atoi(l));
+                char line[MAX_LINE_LENGTH];
+                char line1[MAX_LINE_LENGTH];
+                FILE *username = fopen("/home/mr_nakhjavani/Documents/global_name", "r");
+                fgets(line, sizeof(line), username);
+                if (line == NULL)
+                {
+                    username = fopen(".monster/config_username", "r");
+                    fgets(line, sizeof(line), username);
+                }
+                line[strlen(line) - 1] = '\0';
+                fclose(username);
+                FILE *email = fopen("/home/mr_nakhjavani/Documents/global_email", "r");
+                fgets(line1, sizeof(line1), email);
+                if (line1 == NULL)
+                {
+                    username = fopen(".monster/config_email", "r");
+                    fgets(line1, sizeof(line1), email);
+                }
+                line1[strlen(line1) - 1] = '\0';
+                fclose(email);
+                fprintf(file, "Author: %s <%s>", line, line1);
+                time_t rawtime;
+                struct tm *info;
+                time(&rawtime);
+                info = localtime(&rawtime);
+                fprintf(file, "Date: %s", asctime(info));
+                fprintf(file, "Message: [empty]");
+                fclose(file);
+            }
+        }
+    }
+    else
+    {
+        printf("Invalid inputs!\n");
+        return 1;
+    }
+}
+
+int grerp(int argc, char *argv[])
+{
+    if (!config_flag())
+    {
+        FILE *file1 = fopen("/home/mr_nakhjavani/Documents/global_name", "r");
+        FILE *file2 = fopen("/home/mr_nakhjavani/Documents/global_email", "r");
+        if (file1 == NULL || file2 == NULL)
+        {
+            printf("First you have to register your name and email!\n");
+            return 1;
+        }
+    }
+    if (argc > 6 && strcmp(argv[6], "-c") == 0)
+    {
+        if (argc > 8 && strcmp(argv[8], "-n") == 0)
+        {
+            for (int k = 5; strcmp(argv[k], "-p") != 0; k++)
+            {
+                char name[MAX_FILENAME_LENGTH];
+                int start = 0;
+                for (int i = strlen(argv[3]) - 1; i >= 0; i--)
+                {
+                    if (*(argv[3] + i) == '/')
+                    {
+                        start = i + 1;
+                        break;
+                    }
+                }
+                for (int i = start; i < strlen(argv[3]); i++)
+                {
+                    name[i - start] = *(argv[3] + i);
+                }
+                int commit_id = atoi(argv[7]);
+                char mama[MAX_FILENAME_LENGTH];
+                sprintf(mama, ".neogit/commits%d/%s", commit_id, name);
+                int lconuter = 0;
+                FILE *file = fopen(mama, "r");
+                char line[MAX_LINE_LENGTH];
+                char *tokens[MAX_WORDS_COUNT_IN_A_COMMAND];
+                int flag = 0;
+                int color[100];
+                for (int i = 0; i < 100; i++)
+                {
+                    color[i] = 0;
+                }
+                while (fgets(line, sizeof(line), file) != NULL)
+                {
+                    lconuter++;
+                    flag = 0;
+                    line[strlen(line) - 1] = '\0';
+                    tokens[0] = strtok(line, " ");
+                    int counter = 0;
+                    while (tokens[counter] != NULL)
+                    {
+                        counter++;
+                        tokens[counter] = strtok(NULL, " ");
+                    }
+                    for (int i = 0; i < counter; i++)
+                    {
+                        if (strcmp(tokens[i], argv[k]) == 0)
+                        {
+                            flag = 1;
+                            color[i] = 1;
+                        }
+                    }
+                    if (flag)
+                    {
+                        for (int i = 0; i < counter; i++)
+                        {
+                            if (i == 0 && color[i] == 0)
+                            {
+                                printf("%d %s ", lconuter, tokens[i]);
+                            }
+                            if (color[i] == 1 && i == 0)
+                            {
+                                red();
+                                printf("%d %s ", lconuter, tokens[i]);
+                            }
+                            if (color[i] == 0 && i != 0)
+                            {
+                                printf("%s ", tokens[i]);
+                            }
+                            if (color[i] == 1 && i != 0)
+                            {
+                                red();
+                                printf("%s ", tokens[i]);
+                            }
+                        }
+                        printf("\n");
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (int k = 5; strcmp(argv[k], "-p") != 0; k++)
+            {
+                char name[MAX_FILENAME_LENGTH];
+                int start = 0;
+                for (int i = strlen(argv[3]) - 1; i >= 0; i--)
+                {
+                    if (*(argv[3] + i) == '/')
+                    {
+                        start = i + 1;
+                        break;
+                    }
+                }
+                for (int i = start; i < strlen(argv[3]); i++)
+                {
+                    name[i - start] = *(argv[3] + i);
+                }
+                int commit_id = atoi(argv[7]);
+                char mama[MAX_FILENAME_LENGTH];
+                sprintf(mama, ".neogit/commits%d/%s", commit_id, name);
+                int lconuter = 0;
+                FILE *file = fopen(mama, "r");
+                char line[MAX_LINE_LENGTH];
+                char *tokens[MAX_WORDS_COUNT_IN_A_COMMAND];
+                int flag = 0;
+                int color[100];
+                for (int i = 0; i < 100; i++)
+                {
+                    color[i] = 0;
+                }
+                while (fgets(line, sizeof(line), file) != NULL)
+                {
+                    lconuter++;
+                    flag = 0;
+                    line[strlen(line) - 1] = '\0';
+                    tokens[0] = strtok(line, " ");
+                    int counter = 0;
+                    while (tokens[counter] != NULL)
+                    {
+                        counter++;
+                        tokens[counter] = strtok(NULL, " ");
+                    }
+                    for (int i = 0; i < counter; i++)
+                    {
+                        if (strcmp(tokens[i], argv[k]) == 0)
+                        {
+                            flag = 1;
+                            color[i] = 1;
+                        }
+                    }
+                    if (flag)
+                    {
+                        for (int i = 0; i < counter; i++)
+                        {
+                            if (color[i] == 0)
+                            {
+                                printf("%s ", tokens[i]);
+                            }
+                            if (color[i] == 1)
+                            {
+                                red();
+                                printf("%s ", tokens[i]);
+                            }
+                        }
+                        printf("\n");
+                    }
+                }
+            }
+        }
+    }
+    else if (argc > 6 && strcmp(argv[6], "-n") == 0)
+    {
+        for (int k = 5; strcmp(argv[k], "-p") != 0; k++)
+        {
+            int lconuter = 0;
+            FILE *file = fopen(argv[3], "r");
+            char line[MAX_LINE_LENGTH];
+            char *tokens[MAX_WORDS_COUNT_IN_A_COMMAND];
+            int flag = 0;
+            int color[100];
+            for (int i = 0; i < 100; i++)
+            {
+                color[i] = 0;
+            }
+            while (fgets(line, sizeof(line), file) != NULL)
+            {
+                lconuter++;
+                flag = 0;
+                line[strlen(line) - 1] = '\0';
+                tokens[0] = strtok(line, " ");
+                int counter = 0;
+                while (tokens[counter] != NULL)
+                {
+                    counter++;
+                    tokens[counter] = strtok(NULL, " ");
+                }
+                for (int i = 0; i < counter; i++)
+                {
+                    if (strcmp(tokens[i], argv[k]) == 0)
+                    {
+                        flag = 1;
+                        color[i] = 1;
+                    }
+                }
+                if (flag)
+                {
+                    for (int i = 0; i < counter; i++)
+                    {
+                        if (i == 0 && color[i] == 0)
+                        {
+                            printf("%d %s ", lconuter, tokens[i]);
+                        }
+                        if (color[i] == 1 && i == 0)
+                        {
+                            red();
+                            printf("%d %s ", lconuter, tokens[i]);
+                        }
+                        if (color[i] == 0 && i != 0)
+                        {
+                            printf("%s ", tokens[i]);
+                        }
+                        if (color[i] == 1 && i != 0)
+                        {
+                            red();
+                            printf("%s ", tokens[i]);
+                        }
+                    }
+                    printf("\n");
+                }
+            }
+        }
+    }
+    if (argc == 6)
+    {
+        for (int k = 5; strcmp(argv[k], "-p") != 0; k++)
+        {
+            FILE *file = fopen(argv[3], "r");
+            char line[MAX_LINE_LENGTH];
+            char *tokens[MAX_WORDS_COUNT_IN_A_COMMAND];
+            int flag = 0;
+            int color[100];
+            for (int i = 0; i < 100; i++)
+            {
+                color[i] = 0;
+            }
+            while (fgets(line, sizeof(line), file) != NULL)
+            {
+                flag = 0;
+                line[strlen(line) - 1] = '\0';
+                tokens[0] = strtok(line, " ");
+                int counter = 0;
+                while (tokens[counter] != NULL)
+                {
+                    counter++;
+                    tokens[counter] = strtok(NULL, " ");
+                }
+                for (int i = 0; i < counter; i++)
+                {
+                    if (strcmp(tokens[i], argv[k]) == 0)
+                    {
+                        flag = 1;
+                        color[i] = 1;
+                    }
+                }
+                if (flag)
+                {
+                    for (int i = 0; i < counter; i++)
+                    {
+                        if (color[i] == 0)
+                        {
+                            printf("%s ", tokens[i]);
+                        }
+                        if (color[i] == 1)
+                        {
+                            red();
+                            printf("%s ", tokens[i]);
+                        }
+                    }
+                    printf("\n");
+                }
+            }
+        }
     }
 }
 
@@ -1889,6 +2670,10 @@ int main(int argc, char *argv[])
         return checkout(argc, argv);
     if (strcmp(argv[1], "revert") == 0)
         return revert(argc, argv);
+    if (strcmp(argv[1], "tag") == 0)
+        return monster_tag(argc, argv);
+    if (strcmp(argv[1], "grep") == 0)
+        return grerp(argc, argv);
     if (init_flag())
     {
         char cwd[1024];
@@ -1937,6 +2722,10 @@ int main(int argc, char *argv[])
                     return checkout(count_of_words, words);
                 if (strcmp(words[1], "revert") == 0)
                     return revert(count_of_words, words);
+                if (strcmp(words[1], "tag") == 0)
+                    return monster_tag(count_of_words, words);
+                if (strcmp(words[1], "grep") == 0)
+                    return grerp(count_of_words, words);
             }
         }
         closedir(dir);
@@ -1983,6 +2772,10 @@ int main(int argc, char *argv[])
                     return checkout(count_of_words, words);
                 if (strcmp(words[1], "revert") == 0)
                     return revert(count_of_words, words);
+                if (strcmp(words[1], "tag") == 0)
+                    return monster_tag(count_of_words, words);
+                if (strcmp(words[1], "grep") == 0)
+                    return grerp(count_of_words, words);
             }
         }
         printf("Invalid command!\n");
