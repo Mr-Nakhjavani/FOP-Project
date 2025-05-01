@@ -27,7 +27,7 @@ monster is written in C and can be compiled on any system with a C compiler (e.g
 
 ### Steps
 1. Clone the repository or download the source code.
-      git clone https://github.com/yourusername/monster.git
+      git clone https://github.com/Mr-Nakhjavani/FOP-Project.git
    cd monster
    
 2. Compile the code using GCC.
